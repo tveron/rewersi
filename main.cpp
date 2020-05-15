@@ -22,12 +22,14 @@ private:
 		}
 
 		for (auto it : dirs) {
-			if (map[x + it.first][y + it.second] == -color) {
-				for (int i = 0; -1 > (x + (i + 2) * (it.first)) < 8 && -1 > (y + (i + 2) * (it.second)) < 8; i++)
+
+			if (x + it.first >= 0 && y + it.second >= 0 && y + it.second < size && x + it.first < size && map[x + it.first][y + it.second] == -color) {
+				for (int i = 0; i < dirs.size(); i++)
 				{
+					if (x + (i + 2) * (it.first) < 0 || x + (i + 2) * (it.first) > size - 1 || y + (i + 2) * (it.second) < 0 || y + (i + 2) * (it.second) > size - 1) continue;
 					if (!map[x + (i + 2) * (it.first)][y + (i + 2) * (it.second)]) break;
 					if (map[x + (i + 2) * (it.first)][y + (i + 2) * (it.second)] == color) {
-						ep.push_back((x + (i + 2) * (it.first)) * 8 + (y + (i + 2) * (it.second)));
+						ep.push_back((x + (i + 2) * (it.first)) * size + (y + (i + 2) * (it.second)));
 						break;
 					}
 				}
@@ -39,11 +41,11 @@ private:
 
 	vector< pair<int, vector<int> > > get_moves(int color) {
 		vector< pair<int, vector< int> > > moves;
-		for (int i = 0; i < 8; i++) {
-			for (int j = 0; j < 8; j++) {
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
 				auto end_points = get_endpoints(i, j, color);
 				if (end_points.size()) {
-					moves.push_back({ i * 8 + j, end_points });
+					moves.push_back({ i * size + j, end_points });
 				}
 			}
 		}
@@ -53,36 +55,44 @@ private:
 
 	void make_move(int x, int y, int color, vector<int> ep) {
 		for (auto it = ep.begin(); it != ep.end(); it++) {
-			int offsetX = (x < (*it / 8)) ? 1 : -1;
-			int offsetY = (y < (*it % 8)) ? 1 : -1;
+			int i = x;
+			int j = y;
+			int offsetX = (i < (*it / size)) ? 1 : -1;
+			int offsetY = (j < (*it % size)) ? 1 : -1;
 
-			while ((x != (*it / 8)) || (y != (*it % 8))) {
-				map[x][y] = color;
-				x = x != *it / 8 ? x += offsetX : x;
-				y = y != *it % 8 ? y += offsetY : y;
+			while ((i != (*it / size)) || (j != (*it % size))) {
+				map[i][j] = color;
+				i = i != *it / size ? i += offsetX : i;
+				j = j != *it % size ? j += offsetY : j;
 			}
 		}
 	}
 
 	int score(int color) {
 		int sum = 0;
-		for (int i = 0; i < 8; i++) {
-			for (int j = 0; j < 8; j++) {
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
 				sum += map[i][j];
 			}
 		}
 		return sum * color;
 	}
-	int map[8][8];
+	vector<vector<int>> map;
 	int gamer = 1;
 	vector<pair<int, int>>   dirs{ {0,1},{1,1},{1,0},{1,-1},{0,-1},{-1,-1},{-1,0},{-1,1} };
 	pair<int, int> cur = make_pair<int, int>(3, 3);
+	int size;
 
 public:
-	Game() {
-		memset(map, 0, sizeof(map));
-		map[3][3] = map[4][4] = -1;
-		map[3][4] = map[4][3] = 1;
+	Game(int n) : size(n) {
+		for (size_t i = 0; i < n; i++)
+		{
+			map.push_back(vector<int>(size, 0));
+		}
+		int cor = n / 2;
+
+		map[cor - 1][cor - 1] = map[cor][cor] = -1;
+		map[cor - 1][cor] = map[cor][cor - 1] = 1;
 
 	}
 	void Gameloop() {
@@ -101,7 +111,7 @@ public:
 				cur.second--;
 			break;
 		case KEY_DOWN:
-			if (cur.second < 7)
+			if (cur.second < size - 1)
 				cur.second++;
 			break;
 		case KEY_LEFT:
@@ -109,7 +119,7 @@ public:
 				cur.first--;
 			break;
 		case KEY_RIGHT:
-			if (cur.first < 7)
+			if (cur.first < size - 1)
 				cur.first++;
 			break;
 		case 32:
@@ -119,9 +129,9 @@ public:
 	}
 
 	void Move() {
-		for (size_t i = 0; i < 8; i++)
+		for (size_t i = 0; i < size; i++)
 		{
-			for (size_t j = 0; j < 8; j++)
+			for (size_t j = 0; j < size; j++)
 			{
 				if (map[i][j] == 2) map[i][j] = 0;
 			}
@@ -130,7 +140,7 @@ public:
 		auto gm = get_moves(gamer);
 
 		for (auto it = gm.begin(); it != gm.end(); it++) {
-			if (cur.second * 8 + cur.first == it->first) {
+			if (cur.second * size + cur.first == it->first) {
 				make_move(cur.second, cur.first, gamer, it->second);
 				gamer = -gamer;
 				break;
@@ -142,9 +152,9 @@ public:
 		clear();
 
 		bool flag = true;
-		for (size_t i = 0; i < 8; i++)
+		for (size_t i = 0; i < size; i++)
 		{
-			for (size_t j = 0; j < 8; j++)
+			for (size_t j = 0; j < size; j++)
 			{
 				if (map[i][j] == 0 || map[i][j] == 2) flag = false;
 			}
@@ -161,17 +171,17 @@ public:
 
 
 		for (auto it = moves.begin(); it != moves.end(); it++) {
-			map[it->first / 8][it->first % 8] = 2;
+			map[it->first / size][it->first % size] = 2;
 		}
 
 
 		int x, y;
-		int px = (getmaxx(stdscr) - (8 * 2 + 1)) / 2;
-		for (y = 0; y < (8 * 2); y++)
+		int px = (getmaxx(stdscr) - (size * 2 + 1)) / 2;
+		for (y = 0; y < (size * 2); y++)
 		{
 			if (y % 2 == 0)
 			{
-				for (x = 0; x < 8 * 2; x += 2)
+				for (x = 0; x < size * 2; x += 2)
 				{
 					chtype c;
 					int ch = map[y / 2][x / 2];
@@ -247,6 +257,33 @@ void Init_scr() {
 	}
 }
 
+int ChooseSize() {
+	int size = 8;
+	while (true)
+	{
+		clear();
+		const char* s = "Choose size of field  ";
+		string str(s);
+		mvprintw(getmaxy(stdscr) / 2, (getmaxx(stdscr) - str.length() - 5) / 2, "%s", s);
+		printw("< %d >", size);
+		switch (getch()) {
+
+		case KEY_LEFT:
+			if (size != 4)
+				size -= 2;
+			break;
+		case KEY_RIGHT:
+			if (size != 16)
+				size += 2;
+			break;
+		case 10:
+			return size;
+		}
+
+	}
+
+
+}
 
 int main()
 {
@@ -263,8 +300,7 @@ int main()
 	bkgd(COLOR_PAIR(1));
 	Init_scr();
 	clear();
-
-	Game g;
+	Game g(ChooseSize());
 	g.Invalidate();
 	g.Gameloop();
 	return 0;
